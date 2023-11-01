@@ -105,7 +105,7 @@ float voltage_grid;
 float freq_grid;
 float voltage_out;
 float freq_out;
-float grid_power;
+int grid_power;
 int load_va;
 int load_watt;
 int load_percent;
@@ -121,8 +121,8 @@ float pv_input_watts;
 // float load_watthour = 0;
 float scc_voltage;
 int batt_discharge_current;
-float battery_charge_power;
-float battery_discharge_power;
+int battery_charge_power;
+int battery_discharge_power;
 char device_status[8];
 int battery_voltage_offset_for_fans_on;
 int eeprom_version;
@@ -290,9 +290,16 @@ float batt_redischarge_voltage;
                 battery_charge_power = (voltage_batt * batt_charge_current) * convfactor;
                 battery_discharge_power = (voltage_batt * batt_discharge_current) * convfactor;
 
-                grid_power = load_watt + battery_charge_power - pv_input_watts - battery_discharge_power;
+                if(pv_charging_power < 15) {
+                    pv_charging_power = 0;
+                }
+                grid_power = load_watt + battery_charge_power - pv_charging_power - battery_discharge_power;
                 if(grid_power < 0) {
-                    grid_power = 0.0;
+                    grid_power = 0;
+                }
+                if(pv_charging_power == 0 && battery_charge_power == 0 && battery_discharge_power > 0) {
+                    grid_power = 0;
+                    battery_discharge_power = load_watt;
                 }
 
                 // Calculate watt-hours generated per run interval period (given as program argument)
@@ -310,9 +317,9 @@ float batt_redischarge_voltage;
                 printf("  \"PV_in_voltage\":%.1f,\n", pv_input_voltage);  // QPIGS
                 printf("  \"PV_in_current\":%.1f,\n", pv_input_current);  // QPIGS
                 printf("  \"PV_in_watts\":%.1f,\n", pv_input_watts);      // = (scc_voltage * pv_input_current) * wattfactor;
-                printf("  \"Battery_charge_power\":%.1f,\n", battery_charge_power);
-                printf("  \"Battery_discharge_power\":%.1f,\n", battery_discharge_power);
-                printf("  \"Grid_power\":%.1f,\n", grid_power);
+                printf("  \"Battery_charge_power\":%d,\n", battery_charge_power);
+                printf("  \"Battery_discharge_power\":%d,\n", battery_discharge_power);
+                printf("  \"Grid_power\":%d,\n", grid_power);
                 // printf("  \"PV_in_watthour\":%.4f,\n", pv_input_watthour);
                 printf("  \"SCC_voltage\":%.4f,\n", scc_voltage);         // QPIGS
                 printf("  \"Load_pct\":%d,\n", load_percent);             // QPIGS
